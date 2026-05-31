@@ -3,6 +3,7 @@ from square import Square
 from piece import Piece, Player, PieceType
 import move_generator as mg
 import copy
+from data_structures.stack import Stack
 
 class Move:
     """
@@ -28,17 +29,20 @@ class Game:
     board: Board
     current_player: Player
     winner: Player
-    # undo_stack: Stack
+    undo_stack: Stack
 
     def __init__(self):
         self.draw_counter = 0
         self.board = Board()
         self.current_player = Player.BELI
         self.winner = None
+        self.undo_stack = Stack()
 
 
     def apply_move(self, move: Move, board: Board):
         if self.is_valid_move(move, board): # type: ignore
+            # Lupimo snapshot, tj. deepcopy za undo sistem:
+            self.undo_stack.push(GameState(self.board, self.draw_counter, self.current_player))
 
             piece = board.get_piece(move.from_row, move.from_col)
             board.get_square(move.from_row, move.from_col).piece = None
@@ -63,6 +67,14 @@ class Game:
 
         else:
             raise Exception("Ovo nije validan potez! Pokusajte ponovo!")
+
+
+    def undo(self):
+        if self.undo_stack:
+            state = self.undo_stack.pop()
+            self.board = state.board
+            self.draw_counter = state.draw_counter
+            self.current_player = state.current_player
 
 
     def get_all_moves(self, player: Player, board: Board) -> list:
