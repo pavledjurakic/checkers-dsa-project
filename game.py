@@ -3,6 +3,7 @@ from square import Square
 from piece import Piece, Player, PieceType
 import move_generator as mg
 import copy
+from tsar_road import *
 from data_structures.stack import Stack
 
 class Move:
@@ -30,6 +31,7 @@ class Game:
     current_player: Player
     winner: Player
     undo_stack: Stack
+    tsar_road: TsarRoad
 
     def __init__(self):
         self.draw_counter = 0
@@ -37,6 +39,7 @@ class Game:
         self.current_player = Player.BELI
         self.winner = None
         self.undo_stack = Stack()
+        self.tsar_road = TsarRoad()
 
 
     def apply_move(self, move: Move, board: Board):

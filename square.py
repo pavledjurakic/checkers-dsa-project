@@ -16,7 +16,7 @@ class Square:
         self.row = row
         self.col = col
         self.location = (row, col)
-        self.is_usable = (row + col) % 2 == 1   # tamna polja imaju zbir nep. broj
+        self.is_usable = (row + col) % 2 == 1   # tamna polja imaju zbir neparan broj
         self.piece = None
         self.is_brazda = self.location in self.BRAZDE_LOKACIJE
 

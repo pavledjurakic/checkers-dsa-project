@@ -3,15 +3,15 @@ from enum import Enum
 
 class Player(Enum):
     """Dva igraca u igri."""
-    BELI = 1   # donja strana table, krece se ka vecim redovima (gore vizuelno)
-    CRNI = 2   # gornja strana table, krece se ka manjim redovima (dole vizuelno)
+    BELI = 1   # donja strana table, krece se ka gore
+    CRNI = 2   # gornja strana table, krece se ka dole
 
 
 class PieceType(Enum):
     """Vrste figura."""
-    JUNAK = "junak"                   # obicna figura (pijun)
-    KRALJEVIC = "kraljevic"           # promovisana figura (dama)
-    MARKO_KRALJEVIC = "marko"         # specijalni kraljevic (sve 4 relikvije)
+    JUNAK = "junak"
+    KRALJEVIC = "kraljevic"
+    MARKO_KRALJEVIC = "marko"
 
 
 class Piece:
@@ -19,15 +19,17 @@ class Piece:
     Predstavlja jednu figuru na tabli.
 
     Atributi:
-        player        -- kom igracu pripada (Player enum)
-        piece_type    -- vrsta figure (PieceType enum)
-        active_relics -- lista aktivnih efekata relikvi na ovoj figuri
+        player        - kom igracu pripada (Player enum)
+        piece_type    - vrsta figure (PieceType enum)
+        active_relics - lista aktivnih efekata relikvi na ovoj figuri
     """
 
     def __init__(self, player: Player, piece_type: PieceType = PieceType.JUNAK):
         self.player = player
         self.piece_type = piece_type
-        self.active_relics: list = []   # ovde cemo cuvati aktivne efekte (popunjava se kasnije)
+        self.active_relics = []
+        self.armor_turns = 0
+        self.hesitation_turns = 0
 
     # ------------------------------------------------------------------
     # Status metode

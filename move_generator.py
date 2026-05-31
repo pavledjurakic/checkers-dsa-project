@@ -117,6 +117,7 @@ def get_junak_jump_chains(landing_row: int, landing_col: int, board: Board, play
         enemy_is_capturable = (
             enemy is not None
             and enemy.player != player
+            and enemy.armor_turns == 0
             and next_landing is None
             and (enemy_row, enemy_col) not in already_captured
         )
@@ -217,6 +218,7 @@ def get_kraljevic_jump_chains(landing_row, landing_col, board, player, came_from
             enemy_is_capturable = (
                 enemy is not None
                 and enemy.player != player
+                and enemy.armor_turns == 0
                 and next_landing is None
                 and (enemy_row, enemy_col) not in already_captured
             )

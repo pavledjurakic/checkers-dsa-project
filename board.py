@@ -88,7 +88,7 @@ class Board:
 
 
     # ------------------------------------------------------------------
-    # Provera promocije
+    # Provera promocije i maintanence relikvija
     # ------------------------------------------------------------------
 
     def check_promotion(self, sq: Square):
@@ -101,6 +101,17 @@ class Board:
             return
         if piece.piece_type == PieceType.JUNAK and sq.row == piece.promotion_row():
             piece.promote_to_kraljevic()
+
+    def decrement_relics_count(self):
+        """
+        Prolazi kroz sve figure na tabli i za relic effect count >0 smanjuje im za 1.
+        Biva pozivano na kraju svakog poteza.
+        """
+        for square in self.grid:
+            if square.is_usable and square.piece:
+                if square.piece.armor_turns > 0: square.armor_turns-=1
+                if square.piece.hesitation_turns > 0 : square.hesitation_turns-=1
+        
 
     # ------------------------------------------------------------------
     # Dunder
