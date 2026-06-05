@@ -1,6 +1,7 @@
 from board import Board
 from piece import Player, PieceType
 from square import Square
+from relics import *
 
 
 def get_moves(square: Square, board: Board) -> list:
@@ -72,19 +73,25 @@ def get_junak_moves(square: Square, board: Board) -> list:
             landing_row = square.row + 2 * row_dir
             landing_col = square.col + 2 * col_dir
 
-            if is_out_of_bounds(landing_row, landing_col):
+            if is_out_of_bounds(landing_row, landing_col) and RelicType.TOPUZ not in square.piece.active_relics:
                 continue
-            if board.get_piece(landing_row, landing_col) is not None:
+            elif is_out_of_bounds(landing_row, landing_col) and RelicType.TOPUZ in square.piece.active_relics:
+                # enemy je na ivici table - mozes ga pojesti, ali se tu zavrsava sve ako ne mogu nastaviti da skacem negde dijagonalno, sto znaci ponovo pozovi generate moves za sada ovu novu poziciju
+                pass
+            elif board.get_piece(landing_row, landing_col) is not None and RelicType.TOPUZ not in square.piece.active_relics:
                 continue    # landing je zauzet, skok nije moguc
+            elif board.get_piece(landing_row, landing_col) is not None and RelicType.TOPUZ in square.piece.active_relics:
+                # dva su susedna enemija ili enemy pa moj; svakako imam topuz pa ga mogu pojesti i treba proveriti opet da li mogu nastaviti da skacem
+                pass 
 
-            # Skok je moguc — pronadji sve lance od landing pozicije
+            # Skok je moguc - pronadji sve lance od landing pozicije
             already_captured = {(target_row, target_col)}
             chains = get_junak_jump_chains(landing_row, landing_col, board, player, row_dir, already_captured)
 
             for (final_row, final_col, more_caps) in chains:
                 jump_moves.append( (final_row, final_col, [(target_row, target_col)] + more_caps) )
 
-    # Jedenje je obavezno — ako ima skokova, normalni potezi se ignorisu 
+    # Jedenje je obavezno - ako ima skokova, normalni potezi se ignorisu 
     return jump_moves if jump_moves else normal_moves
 
 
@@ -136,7 +143,7 @@ def get_junak_jump_chains(landing_row: int, landing_col: int, board: Board, play
 
 
 # ============================================
-# KRALJEVIC  (i MARKO KRALJEVIC - isti pokret)
+# KRALJEVIC  (i MARKO KRALJEVIC - isti)
 # ============================================
 
 def get_kraljevic_moves(square: Square, board: Board) -> list:
@@ -164,10 +171,16 @@ def get_kraljevic_moves(square: Square, board: Board) -> list:
                     landing_row = target_row + row_direction
                     landing_col = target_col + col_direction
 
-                    if is_out_of_bounds(landing_row, landing_col):
+                    if is_out_of_bounds(landing_row, landing_col) and RelicType.TOPUZ not in square.piece.active_relics:
                         break
-                    if board.get_piece(landing_row, landing_col) is not None:
-                        break
+                    elif is_out_of_bounds(landing_row, landing_col) and RelicType.TOPUZ in square.piece.active_relics:
+                        # enemy je na ivici table - mozes ga pojesti, ali se tu zavrsava sve ako ne mogu nastaviti da skacem negde dijagonalno, sto znaci ponovo pozovi generate moves za sada ovu novu poziciju
+                        pass
+                    elif board.get_piece(landing_row, landing_col) is not None and RelicType.TOPUZ not in square.piece.active_relics:
+                        break    # landing je zauzet, skok nije moguc
+                    elif board.get_piece(landing_row, landing_col) is not None and RelicType.TOPUZ in square.piece.active_relics:
+                        # dva su susedna enemija ili enemy pa moj; svakako imam topuz pa ga mogu pojesti i treba proveriti opet da li mogu nastaviti da skacem
+                        pass
 
                     already_captured = {(target_row, target_col)}
 
@@ -181,7 +194,7 @@ def get_kraljevic_moves(square: Square, board: Board) -> list:
                 target_row += row_direction
                 target_col += col_direction
 
-    # Jedenje je obavezno — ako ima skokova, normalni potezi se ignorisu 
+    # Jedenje je obavezno - ako ima skokova, normalni potezi se ignorisu 
     return jump_moves if jump_moves else normal_moves
 
 

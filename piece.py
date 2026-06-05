@@ -1,5 +1,5 @@
 from enum import Enum
-
+from relics import *
 
 class Player(Enum):
     """Dva igraca u igri."""
@@ -30,6 +30,7 @@ class Piece:
         self.active_relics = []
         self.armor_turns = 0
         self.hesitation_turns = 0
+        self.unwaivering = False
 
     # ------------------------------------------------------------------
     # Status metode
@@ -41,6 +42,12 @@ class Piece:
 
     def is_marko(self) -> bool:
         return self.piece_type == PieceType.MARKO_KRALJEVIC
+    
+    def can_promote_to_marko(self) -> bool:
+        if {RelicType.TRI_TOVARA_BLAGA,RelicType.SARAC,RelicType.TOPUZ, RelicType.MESINA_RUJNOG_VINA}.issubset(set(self.active_relics)):
+            self.promote_to_marko()
+            return True
+        return False
 
     # ------------------------------------------------------------------
     # Promocija
@@ -53,8 +60,8 @@ class Piece:
 
     def promote_to_marko(self):
         """Promovise Kraljevica u Marka Kraljevica (pasivna sposobnost nepokolebljivosti)."""
-        if self.piece_type == PieceType.KRALJEVIC:
-            self.piece_type = PieceType.MARKO_KRALJEVIC
+        self.piece_type = PieceType.MARKO_KRALJEVIC
+        self.unwaivering = True
 
     # ------------------------------------------------------------------
     # Pravac kretanja (bitno za Junaka koji ide samo napred)

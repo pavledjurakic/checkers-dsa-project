@@ -43,12 +43,29 @@ def main():
                     target_square.piece.active_relics.append(relic)
                     if relic == RelicType.TRI_TOVARA_BLAGA:
                         target_square.piece.promote_to_kraljevic()
+                    elif relic == RelicType.TOKA_OD_CELIKA:
+                        target_square.piece.armor_turns = 2 if target_square.piece.is_marko() else 1
+                    elif relic == RelicType.MESINA_RUJNOG_VINA:
+                        nearest_enemy_squares = game.board.get_nearest_enemy(target_square.row,target_square.col)
+                        # To Do - jos samo da se ovde kasnije ubaci da se zapravo bira ona koja je najjaca figura, a da nije otporna da se mami u heuristici
+                        if nearest_enemy_squares[0].piece.unwaivering==False: nearest_enemy_squares[0].piece.hesitation_turns = 2
 
                 case 2:
                     relic = game.tsar_road.get_rear()
                     target_square.piece.active_relics.append(relic)
                     if relic == RelicType.TRI_TOVARA_BLAGA:
                         target_square.piece.promote_to_kraljevic()
+                    elif relic == RelicType.TOKA_OD_CELIKA:
+                        target_square.piece.armor_turns = 2 if target_square.piece.is_marko() else 1
+                    elif relic == RelicType.MESINA_RUJNOG_VINA:
+                        nearest_enemy_squares = game.board.get_nearest_enemy(target_square.row,target_square.col)
+                        # To Do - jos samo da se ovde kasnije ubaci da se zapravo bira ona koja je najjaca figura, a da nije otporna da se mami u heuristici
+                        if nearest_enemy_squares[0].piece.unwaivering==False: nearest_enemy_squares[0].piece.hesitation_turns = 2
+
+            
+            if target_square.piece.can_promote_to_marko():
+                print("Vasa figura je postala Marko Kraljevic - sada ima pasivnu sposobnost nepokolebljivosti.")
+
         game.board.decrement_relics_count()
 
     print(f"Pobednik je {game.get_winner(game.board)}")

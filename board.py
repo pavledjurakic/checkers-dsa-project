@@ -70,6 +70,25 @@ class Board:
                 result.append((square.piece, square))
         return result
 
+
+    def get_nearest_enemy(self, row: int, col: int) -> list[Square] | None:   # trazi po nivoima udaljenost kruzno i vraca sve koje su najlizi na istoj udaljenosti
+        for distance in range(1,8):
+            found = []
+
+            directions = [(-distance,-distance),(-distance,distance),(distance,-distance),(distance,distance)]
+            for dx, dy in directions:
+                x = row + dx
+                y = col + dy
+
+                if 0 <= x < self.ROWS and 0 <= y < self.COLS:
+                    if self.get_piece(x,y) is not None and self.get_piece(x,y).player != self.get_piece(row,col).player:
+                        found.append(self.get_square(x,y))
+            
+            if found:
+                return found
+        return None
+
+
     # ------------------------------------------------------------------
     # Pomeranje i uklanjanje figura
     # ------------------------------------------------------------------
@@ -109,8 +128,8 @@ class Board:
         """
         for square in self.grid:
             if square.is_usable and square.piece:
-                if square.piece.armor_turns > 0: square.armor_turns-=1
-                if square.piece.hesitation_turns > 0 : square.hesitation_turns-=1
+                if square.piece.armor_turns > 0: square.piece.armor_turns-=1
+                if square.piece.hesitation_turns > 0 : square.piece.hesitation_turns-=1
         
 
     # ------------------------------------------------------------------
