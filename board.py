@@ -70,7 +70,6 @@ class Board:
                 result.append((square.piece, square))
         return result
 
-
     def get_nearest_enemy(self, row: int, col: int) -> list[Square] | None:
         """
         Vraca listu najblizih neprijateljskih figura po euklidskoj udaljenosti.

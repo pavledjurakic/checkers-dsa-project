@@ -1,3 +1,6 @@
+import random
+from enum import Enum
+
 class Square:
     """
     Predstavlja jedno polje na tabli.
@@ -8,6 +11,7 @@ class Square:
         is_usable   -- True samo za tamna polja (jedina aktivna u Dami)
         piece       -- objekat figure koja stoji na polju, ili None
         is_brazda   -- True za specijalna polja (3,0) i (4,7)
+        hashes      -- Dictionary oblika "figura":'hash'
     """
 
     BRAZDE_LOKACIJE = {(3, 0), (4, 7)}
@@ -19,6 +23,8 @@ class Square:
         self.is_usable = (row + col) % 2 == 1   # tamna polja imaju zbir neparan broj
         self.piece = None
         self.is_brazda = self.location in self.BRAZDE_LOKACIJE
+        self.hashes = {}
+        self.assign_hashes()
 
     # ------------------------------------------------------------------
     # Pomocne metode
@@ -41,3 +47,21 @@ class Square:
             extras.append(str(self.piece))
         info = ", ".join(extras) if extras else "prazno"
         return f"Square({self.row},{self.col}) [{info}]"
+    
+    def assign_hashes(self) -> None:
+        for i in ["BELI", "CRNI"]:
+            self.hashes[i] = randomInt()
+        for i in ["JUNAK", "KRALJEVIC", "MARKO_KRALJEVIC"]:
+            self.hashes[i] = randomInt()
+        for i in ["TOKA_OD_CELIKA", "TOPUZ", "MESINA_RUJNOG_VINA", "TRI_TOVARA_BLAGA", "SARAC"]:
+            self.hashes[i] = randomInt()
+
+
+#========================================
+
+def randomInt():
+    min = 0
+    max = pow(2, 64)
+    return random.randint(min, max)
+    
+

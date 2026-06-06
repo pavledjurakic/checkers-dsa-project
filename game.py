@@ -33,6 +33,8 @@ class Game:
     winner: Player
     undo_stack: Stack
     tsar_road: TsarRoad
+    ai_player: Player
+    human_player: Player
 
     def __init__(self):
         self.draw_counter = 0
@@ -41,6 +43,8 @@ class Game:
         self.winner = None
         self.undo_stack = Stack()
         self.tsar_road = TsarRoad()
+        self.ai_player = None
+        self.human_player = None
 
 
     def apply_move(self, move: Move, board: Board):
