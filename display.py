@@ -8,7 +8,10 @@ RED = '[31;1m'    # tamno braon  — crni igrac
 BG_LITE = '[47m'  # svetla pozadina — belo polje
 BG_CYAN = '[46m'  # highlighted potez
 BG_PINK = '[45m'  # brazda
-END = '\033[0m'
+END       = '\033[0m'
+# Na roze (BG_PINK) pozadini WHITE i RED su slicni — koristimo kontrastnija:
+BRAZDA_BELI = '[34;1m'  # plavo-bold: jasno vidljivo na roze
+BRAZDA_CRNI = '[30;1m'  # crno-bold: jasno vidljivo na roze
 
 
 def _sym(piece):
@@ -50,7 +53,7 @@ def print_board(board, highlighted=[]):
                     piece_line += f"|{BG_PINK}  ~  {END}"
                     relic_line += f"|{BG_PINK}     {END}"
                 else:
-                    color = WHITE if sq.piece.player == Player.BELI else RED
+                    color = BRAZDA_BELI if sq.piece.player == Player.BELI else BRAZDA_CRNI
                     piece_line += f"|{BG_PINK}{color}  {_sym(sq.piece)}  {END}"
                     relic_line += f"|{BG_PINK}{color}{_relic_str(sq.piece)}{END}"
             else:

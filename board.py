@@ -71,22 +71,28 @@ class Board:
         return result
 
 
-    def get_nearest_enemy(self, row: int, col: int) -> list[Square] | None:   # trazi po nivoima udaljenost kruzno i vraca sve koje su najlizi na istoj udaljenosti
-        for distance in range(1,8):
-            found = []
+    def get_nearest_enemy(self, row: int, col: int) -> list[Square] | None:
+        """
+        Vraca listu najblizih neprijateljskih figura po euklidskoj udaljenosti.
+        Prethodno je trazilo samo dijagonalno, sto je davalo pogresne rezultate
+        (npr. (4,3) nije na dijagonali od (4,7), ali je fizicki blize od (1,4)).
+        """
+        current_piece = self.get_piece(row, col)
+        if current_piece is None:
+            return None
 
-            directions = [(-distance,-distance),(-distance,distance),(distance,-distance),(distance,distance)]
-            for dx, dy in directions:
-                x = row + dx
-                y = col + dy
+        enemies = []
+        for sq in self.grid:
+            if sq.piece and sq.piece.player != current_piece.player:
+                # Euklidska udaljenost kvadrirana (bez sqrt, radi poredenja)
+                dist_sq = (sq.row - row) ** 2 + (sq.col - col) ** 2
+                enemies.append((dist_sq, sq))
 
-                if 0 <= x < self.ROWS and 0 <= y < self.COLS:
-                    if self.get_piece(x,y) is not None and self.get_piece(x,y).player != self.get_piece(row,col).player:
-                        found.append(self.get_square(x,y))
-            
-            if found:
-                return found
-        return None
+        if not enemies:
+            return None
+
+        min_dist = min(d for d, _ in enemies)
+        return [sq for d, sq in enemies if d == min_dist]
 
 
     # ------------------------------------------------------------------
