@@ -96,7 +96,7 @@ def minimax(game, depth, alpha, beta, is_maximizing, transposition_table):
             if pos_hash in transposition_table and transposition_table[pos_hash][1] >= depth:
                 score = transposition_table[pos_hash][0]
             else:
-                score = minimax(game_copy, depth-1, alpha, beta, False)
+                score = minimax(game_copy, depth-1, alpha, beta, False, transposition_table)
                 transposition_table[pos_hash] = [score, depth]
 
             best  = max(best, score)
@@ -116,7 +116,7 @@ def minimax(game, depth, alpha, beta, is_maximizing, transposition_table):
             if pos_hash in transposition_table and transposition_table[pos_hash][1] >= depth:
                 score = transposition_table[pos_hash][0]
             else:
-                score = minimax(game_copy, depth-1, alpha, beta, True)
+                score = minimax(game_copy, depth-1, alpha, beta, True, transposition_table)
                 transposition_table[pos_hash] = [score, depth]
             
             best = min(best, score)
