@@ -10,12 +10,12 @@ def get_moves(square: Square, board: Board) -> list:
     Vraca listu validnih poteza za figuru na tom polju.
 
     Svaki potez je tuple oblika:
-        (to_row, to_col, [lista (row,col) pojedenih neprijatelja])
+        (to_row, to_col, [captured], frozenset(relics_used))
 
     Primeri:
-        (3, 4, [])                    <- normalan potez, niko nije pojeden
-        (1, 6, [(4, 3)])              <- skok, pojeden neprijatelj na (4,3)
-        (1, 2, [(4, 3), (2, 1)])      <- lancani skok, pojeeni dvoje
+        (3, 4, [], frozenset())
+        (1, 6, [(4,3)], frozenset())
+        (1, 2, [(4,3),(2,1)], frozenset({RelicType.TOPUZ}))
     """
     piece = square.piece
     if piece is None:
@@ -43,19 +43,17 @@ def is_out_of_bounds(row: int, col: int) -> bool:
 # =====
 
 def get_junak_moves(square: Square, board: Board) -> list:
-    """
-    Generise poteze za Junaka.
+    piece    = square.piece
+    player   = piece.player
+    row_dir  = piece.forward_direction()
 
-    Junak se krece samo NAPRED dijagonalno za 1 polje.
-    Ako postoji ijedan skok - normalni potezi su zabranjeni (jedenje je obavezno).
-    """
-    player    = square.piece.player
-    row_dir   = square.piece.forward_direction()   # BELI: -1, CRNI: +1
+    # Hesitation blokira skokove, ali NE Topuz (on je direktan ulazak)
+    can_jump = piece.hesitation_turns == 0
 
     normal_moves = []
     jump_moves   = []
 
-    for col_dir in (+1, -1):   # leva i desna dijagonala
+    for col_dir in (+1, -1):
         target_row = square.row + row_dir
         target_col = square.col + col_dir
 
@@ -65,185 +63,277 @@ def get_junak_moves(square: Square, board: Board) -> list:
         piece_on_target = board.get_piece(target_row, target_col)
 
         if piece_on_target is None:
-            # Prazno polje - normalan potez
-            normal_moves.append((target_row, target_col, []))
+            normal_moves.append((target_row, target_col, [], frozenset()))
 
-        elif piece_on_target.player != player:
-            # Neprijatelj - proveri da li je landing slobodan
-            landing_row = square.row + 2 * row_dir
-            landing_col = square.col + 2 * col_dir
+        elif piece_on_target.player != player and piece_on_target.armor_turns == 0:
+            landing_row  = square.row + 2 * row_dir
+            landing_col  = square.col + 2 * col_dir
+            landing_free = (not is_out_of_bounds(landing_row, landing_col) and
+                            board.get_piece(landing_row, landing_col) is None)
 
-            if is_out_of_bounds(landing_row, landing_col) and RelicType.TOPUZ not in square.piece.active_relics:
-                continue
-            elif is_out_of_bounds(landing_row, landing_col) and RelicType.TOPUZ in square.piece.active_relics:
-                # enemy je na ivici table - mozes ga pojesti, ali se tu zavrsava sve ako ne mogu nastaviti da skacem negde dijagonalno, sto znaci ponovo pozovi generate moves za sada ovu novu poziciju
-                pass
-            elif board.get_piece(landing_row, landing_col) is not None and RelicType.TOPUZ not in square.piece.active_relics:
-                continue    # landing je zauzet, skok nije moguc
-            elif board.get_piece(landing_row, landing_col) is not None and RelicType.TOPUZ in square.piece.active_relics:
-                # dva su susedna enemija ili enemy pa moj; svakako imam topuz pa ga mogu pojesti i treba proveriti opet da li mogu nastaviti da skacem
-                pass 
+            if landing_free and can_jump:
+                # Normalan skok
+                chains = get_junak_jump_chains(
+                    landing_row, landing_col, board, player, row_dir, piece,
+                    frozenset({(target_row, target_col)}), frozenset()
+                )
+                for (fr, fc, caps, rel) in chains:
+                    jump_moves.append((fr, fc, [(target_row, target_col)] + caps, rel))
 
-            # Skok je moguc - pronadji sve lance od landing pozicije
-            already_captured = {(target_row, target_col)}
-            chains = get_junak_jump_chains(landing_row, landing_col, board, player, row_dir, already_captured)
+            elif not landing_free or not can_jump:
+                # Topuz: direktan udar na zauzeto/nedostupno polje
+                # Hesitation ga NE blokira - "direktan ulazak bez preskakanja"
+                topuz_avail = RelicType.TOPUZ in piece.active_relics
+                if topuz_avail:
+                    chains = get_junak_jump_chains(
+                        target_row, target_col, board, player, row_dir, piece,
+                        frozenset({(target_row, target_col)}),
+                        frozenset({RelicType.TOPUZ})
+                    )
+                    for (fr, fc, caps, rel) in chains:
+                        jump_moves.append((fr, fc, [(target_row, target_col)] + caps, rel))
 
-            for (final_row, final_col, more_caps) in chains:
-                jump_moves.append( (final_row, final_col, [(target_row, target_col)] + more_caps) )
+        elif piece_on_target.player == player and can_jump:
+            # Sarac: preskoci sopstvenu figuru (jeste skok, blokiran hesitationom)
+            sarac_avail = RelicType.SARAC in piece.active_relics
+            if sarac_avail:
+                landing_row = square.row + 2 * row_dir
+                landing_col = square.col + 2 * col_dir
+                if (not is_out_of_bounds(landing_row, landing_col) and
+                        board.get_piece(landing_row, landing_col) is None):
+                    chains = get_junak_jump_chains(
+                        landing_row, landing_col, board, player, row_dir, piece,
+                        frozenset(), frozenset({RelicType.SARAC})
+                    )
+                    for (fr, fc, caps, rel) in chains:
+                        if caps:
+                            jump_moves.append((fr, fc, caps, rel))
+                        else:
+                            normal_moves.append((fr, fc, [], rel))
 
-    # Jedenje je obavezno - ako ima skokova, normalni potezi se ignorisu 
     return jump_moves if jump_moves else normal_moves
 
 
-def get_junak_jump_chains(landing_row: int, landing_col: int, board: Board, player: Player, row_dir: int, already_captured: set) -> list:
+def get_junak_jump_chains(landing_row: int, landing_col: int, board: Board,
+                          player: Player, row_dir: int, piece,
+                          already_captured: frozenset, relics_used: frozenset) -> list:
     """
-    Rekurzivna funkcija. Poziva se sa landing pozicije nakon skoka.
-    Trazi sve moguce dalje lance skokova od te pozicije.
+    Rekurzivna funkcija za lancane skokove Junaka.
 
-    Vraca listu (final_row, final_col, [dalje_pojedeni]) za svaki moguci put.
-    Ako nema daljeg skakanja, vraca [(landing_row, landing_col, [])].
+    piece            -- originalna figura (proveravamo piece.active_relics direktno)
+    already_captured -- frozenset koordinata vec pojedenih u ovom lancu
+    relics_used      -- frozenset relikvija iskoriscenih u ovom lancu
 
-    already_captured: skup vec pojedenih figura u ovom lancu (ne smemo preskociti isti komad dva puta)
+    Vraca listu (final_row, final_col, [dalje_captured], relics_used).
     """
+    # Proveravamo dostupnost direktno iz piece.active_relics minus vec iskoriscene u ovom lancu
+    topuz_avail = RelicType.TOPUZ in piece.active_relics and RelicType.TOPUZ not in relics_used
+    sarac_avail = RelicType.SARAC in piece.active_relics and RelicType.SARAC not in relics_used
+
     paths = []
 
     for col_dir in (+1, -1):
-        enemy_row = landing_row + row_dir
-        enemy_col = landing_col + col_dir
-        next_landing_row = landing_row + 2 * row_dir
-        next_landing_col = landing_col + 2 * col_dir
+        enemy_row     = landing_row + row_dir
+        enemy_col     = landing_col + col_dir
+        next_land_row = landing_row + 2 * row_dir
+        next_land_col = landing_col + 2 * col_dir
 
         if is_out_of_bounds(enemy_row, enemy_col):
             continue
-        if is_out_of_bounds(next_landing_row, next_landing_col):
+
+        piece_at = board.get_piece(enemy_row, enemy_col)
+        if piece_at is None:
             continue
 
-        enemy = board.get_piece(enemy_row, enemy_col)
-        next_landing = board.get_piece(next_landing_row, next_landing_col)
+        if (piece_at.player != player and piece_at.armor_turns == 0
+                and (enemy_row, enemy_col) not in already_captured):
 
-        enemy_is_capturable = (
-            enemy is not None
-            and enemy.player != player
-            and enemy.armor_turns == 0
-            and next_landing is None
-            and (enemy_row, enemy_col) not in already_captured
-        )
+            next_free = (not is_out_of_bounds(next_land_row, next_land_col) and
+                         board.get_piece(next_land_row, next_land_col) is None)
 
-        if enemy_is_capturable:
-            new_captured = already_captured | {(enemy_row, enemy_col)}
-            sub_paths = get_junak_jump_chains(next_landing_row, next_landing_col, board, player, row_dir, new_captured)
-            for (final_row, final_col, more_caps) in sub_paths:
-                paths.append( (final_row, final_col, [(enemy_row, enemy_col)] + more_caps) )
+            if next_free:
+                # Normalan skok
+                sub = get_junak_jump_chains(
+                    next_land_row, next_land_col, board, player, row_dir, piece,
+                    already_captured | {(enemy_row, enemy_col)}, relics_used
+                )
+                for (fr, fc, caps, rel) in sub:
+                    paths.append((fr, fc, [(enemy_row, enemy_col)] + caps, rel))
 
-    # Nema vise skokova - ova landing pozicija je konacna
+            elif topuz_avail:
+                # Topuz: uskaci na neprijateljevo polje
+                sub = get_junak_jump_chains(
+                    enemy_row, enemy_col, board, player, row_dir, piece,
+                    already_captured | {(enemy_row, enemy_col)},
+                    relics_used | {RelicType.TOPUZ}
+                )
+                for (fr, fc, caps, rel) in sub:
+                    paths.append((fr, fc, [(enemy_row, enemy_col)] + caps, rel))
+
+        elif piece_at.player == player and sarac_avail:
+            if (not is_out_of_bounds(next_land_row, next_land_col) and
+                    board.get_piece(next_land_row, next_land_col) is None):
+                # Sarac unutar lanca
+                sub = get_junak_jump_chains(
+                    next_land_row, next_land_col, board, player, row_dir, piece,
+                    already_captured, relics_used | {RelicType.SARAC}
+                )
+                for (fr, fc, caps, rel) in sub:
+                    paths.append((fr, fc, caps, rel))
+
     if not paths:
-        return [(landing_row, landing_col, [])]
-
+        return [(landing_row, landing_col, [], relics_used)]
     return paths
 
 
-# ============================================
-# KRALJEVIC  (i MARKO KRALJEVIC - isti)
-# ============================================
+# ==========================================
+# KRALJEVIC  (i MARKO KRALJEVIC — isti su)
+# ==========================================
 
 def get_kraljevic_moves(square: Square, board: Board) -> list:
-    """
-    Kraljevic se krece dijagonalno u sva 4 smera, koliko god polja.
-    """
+    piece    = square.piece
+    player   = piece.player
+    can_jump = piece.hesitation_turns == 0
 
-    player = square.piece.player
     normal_moves = []
-    jump_moves = []
+    jump_moves   = []
 
-
-    for col_direction in (+1,-1):
-        for row_direction in (+1,-1):
+    for col_direction in (+1, -1):
+        for row_direction in (+1, -1):
             target_row = square.row + row_direction
             target_col = square.col + col_direction
-            
+
             while not is_out_of_bounds(target_row, target_col):
                 piece_on_target = board.get_piece(target_row, target_col)
-                
+
                 if piece_on_target is None:
-                    normal_moves.append((target_row, target_col, []))
+                    normal_moves.append((target_row, target_col, [], frozenset()))
 
-                elif piece_on_target.player != player:
-                    landing_row = target_row + row_direction
-                    landing_col = target_col + col_direction
+                elif piece_on_target.player != player and piece_on_target.armor_turns == 0:
+                    landing_row  = target_row + row_direction
+                    landing_col  = target_col + col_direction
+                    landing_free = (not is_out_of_bounds(landing_row, landing_col) and
+                                    board.get_piece(landing_row, landing_col) is None)
 
-                    if is_out_of_bounds(landing_row, landing_col) and RelicType.TOPUZ not in square.piece.active_relics:
-                        break
-                    elif is_out_of_bounds(landing_row, landing_col) and RelicType.TOPUZ in square.piece.active_relics:
-                        # enemy je na ivici table - mozes ga pojesti, ali se tu zavrsava sve ako ne mogu nastaviti da skacem negde dijagonalno, sto znaci ponovo pozovi generate moves za sada ovu novu poziciju
-                        pass
-                    elif board.get_piece(landing_row, landing_col) is not None and RelicType.TOPUZ not in square.piece.active_relics:
-                        break    # landing je zauzet, skok nije moguc
-                    elif board.get_piece(landing_row, landing_col) is not None and RelicType.TOPUZ in square.piece.active_relics:
-                        # dva su susedna enemija ili enemy pa moj; svakako imam topuz pa ga mogu pojesti i treba proveriti opet da li mogu nastaviti da skacem
-                        pass
+                    if landing_free and can_jump:
+                        chains = get_kraljevic_jump_chains(
+                            landing_row, landing_col, board, player,
+                            row_direction, col_direction, piece,
+                            frozenset({(target_row, target_col)}), frozenset()
+                        )
+                        for (fr, fc, caps, rel) in chains:
+                            jump_moves.append((fr, fc, [(target_row, target_col)] + caps, rel))
 
-                    already_captured = {(target_row, target_col)}
-
-                    chains = get_kraljevic_jump_chains(landing_row, landing_col, board, player, row_direction, col_direction, already_captured)
-
-                    for (final_row, final_col, more_caps) in chains:
-                        jump_moves.append( (final_row, final_col, [(target_row, target_col)] + more_caps) )
-                    
+                    elif not landing_free or not can_jump:
+                        topuz_avail = RelicType.TOPUZ in piece.active_relics
+                        if topuz_avail:
+                            chains = get_kraljevic_jump_chains(
+                                target_row, target_col, board, player,
+                                row_direction, col_direction, piece,
+                                frozenset({(target_row, target_col)}),
+                                frozenset({RelicType.TOPUZ})
+                            )
+                            for (fr, fc, caps, rel) in chains:
+                                jump_moves.append((fr, fc, [(target_row, target_col)] + caps, rel))
                     break
-                
+
+                elif piece_on_target.player == player and can_jump:
+                    sarac_avail = RelicType.SARAC in piece.active_relics
+                    if sarac_avail:
+                        landing_row = target_row + row_direction
+                        landing_col = target_col + col_direction
+                        if (not is_out_of_bounds(landing_row, landing_col) and
+                                board.get_piece(landing_row, landing_col) is None):
+                            chains = get_kraljevic_jump_chains(
+                                landing_row, landing_col, board, player,
+                                row_direction, col_direction, piece,
+                                frozenset(), frozenset({RelicType.SARAC})
+                            )
+                            for (fr, fc, caps, rel) in chains:
+                                if caps:
+                                    jump_moves.append((fr, fc, caps, rel))
+                                else:
+                                    normal_moves.append((fr, fc, [], rel))
+                    break
+
+                else:
+                    break
+
                 target_row += row_direction
                 target_col += col_direction
 
-    # Jedenje je obavezno - ako ima skokova, normalni potezi se ignorisu 
     return jump_moves if jump_moves else normal_moves
 
 
-def get_kraljevic_jump_chains(landing_row, landing_col, board, player, came_from_row_dir, came_from_col_dir, already_captured):
+def get_kraljevic_jump_chains(landing_row, landing_col, board, player,
+                               came_from_row_dir, came_from_col_dir, piece,
+                               already_captured: frozenset, relics_used: frozenset) -> list:
     """
-    Rekurzivna funkcija. Poziva se sa landing pozicije nakon skoka kraljevica.
-    Trazi sve moguce dalje lance skokova od te pozicije u svim pravcima osim odakle je dosao, da ne pojede 2 puta istog.
+    Rekurzivna funkcija za lancane skokove Kraljevica.
 
-    Vraca listu (final_row, final_col, [dalje_pojedeni]) za svaki moguci put.
-    Ako nema daljeg skakanja, vraca [(landing_row, landing_col, [])].
-
-    already_captured: skup vec pojedenih figura u ovom lancu (ne smemo preskociti isti komad dva puta)
+    piece            -- originalna figura (proveravamo piece.active_relics direktno)
+    already_captured -- frozenset koordinata vec pojedenih u ovom lancu
+    relics_used      -- frozenset relikvija iskoriscenih u ovom lancu
     """
+    topuz_avail = RelicType.TOPUZ in piece.active_relics and RelicType.TOPUZ not in relics_used
+    sarac_avail = RelicType.SARAC in piece.active_relics and RelicType.SARAC not in relics_used
+
     paths = []
-    
+
     for row_dir in (+1, -1):
         for col_dir in (+1, -1):
+            # Ne vracamo se unazad
             if row_dir == -came_from_row_dir and col_dir == -came_from_col_dir:
                 continue
-            
-            enemy_row = landing_row + row_dir
-            enemy_col = landing_col + col_dir
-            next_landing_row = landing_row + 2 * row_dir
-            next_landing_col = landing_col + 2 * col_dir
+
+            enemy_row     = landing_row + row_dir
+            enemy_col     = landing_col + col_dir
+            next_land_row = landing_row + 2 * row_dir
+            next_land_col = landing_col + 2 * col_dir
 
             if is_out_of_bounds(enemy_row, enemy_col):
                 continue
-            if is_out_of_bounds(next_landing_row, next_landing_col):
+
+            piece_at = board.get_piece(enemy_row, enemy_col)
+            if piece_at is None:
                 continue
 
-            enemy = board.get_piece(enemy_row, enemy_col)
-            next_landing = board.get_piece(next_landing_row, next_landing_col)
+            if (piece_at.player != player and piece_at.armor_turns == 0
+                    and (enemy_row, enemy_col) not in already_captured):
 
-            enemy_is_capturable = (
-                enemy is not None
-                and enemy.player != player
-                and enemy.armor_turns == 0
-                and next_landing is None
-                and (enemy_row, enemy_col) not in already_captured
-            )
+                next_free = (not is_out_of_bounds(next_land_row, next_land_col) and
+                             board.get_piece(next_land_row, next_land_col) is None)
 
-            if enemy_is_capturable:
-                new_captured = already_captured | {(enemy_row, enemy_col)}
-                sub_paths = get_kraljevic_jump_chains(next_landing_row, next_landing_col, board, player, row_dir, col_dir, new_captured)
-                for (final_row, final_col, more_caps) in sub_paths:
-                    paths.append( (final_row, final_col, [(enemy_row, enemy_col)] + more_caps) )
+                if next_free:
+                    sub = get_kraljevic_jump_chains(
+                        next_land_row, next_land_col, board, player,
+                        row_dir, col_dir, piece,
+                        already_captured | {(enemy_row, enemy_col)}, relics_used
+                    )
+                    for (fr, fc, caps, rel) in sub:
+                        paths.append((fr, fc, [(enemy_row, enemy_col)] + caps, rel))
 
-    # Nema vise skokova - ova landing pozicija je konacna
+                elif topuz_avail:
+                    sub = get_kraljevic_jump_chains(
+                        enemy_row, enemy_col, board, player,
+                        row_dir, col_dir, piece,
+                        already_captured | {(enemy_row, enemy_col)},
+                        relics_used | {RelicType.TOPUZ}
+                    )
+                    for (fr, fc, caps, rel) in sub:
+                        paths.append((fr, fc, [(enemy_row, enemy_col)] + caps, rel))
+
+            elif piece_at.player == player and sarac_avail:
+                if (not is_out_of_bounds(next_land_row, next_land_col) and
+                        board.get_piece(next_land_row, next_land_col) is None):
+                    sub = get_kraljevic_jump_chains(
+                        next_land_row, next_land_col, board, player,
+                        row_dir, col_dir, piece,
+                        already_captured, relics_used | {RelicType.SARAC}
+                    )
+                    for (fr, fc, caps, rel) in sub:
+                        paths.append((fr, fc, caps, rel))
+
     if not paths:
-        return [(landing_row, landing_col, [])]
-
+        return [(landing_row, landing_col, [], relics_used)]
     return paths

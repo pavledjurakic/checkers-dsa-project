@@ -1,4 +1,5 @@
 from enum import Enum
+import random
 
 class RelicType(Enum):
     TOKA_OD_CELIKA = "toka od celika"
@@ -9,6 +10,7 @@ class RelicType(Enum):
 
 def relic_cycle():
     relics = [RelicType.TOKA_OD_CELIKA, RelicType.MESINA_RUJNOG_VINA, RelicType.TOPUZ, RelicType.SARAC, RelicType.TRI_TOVARA_BLAGA]
+    random.shuffle(relics)
     while True:
         for relic in relics:
             yield relic

@@ -1,6 +1,6 @@
 from square import Square
 from piece import Piece, Player, PieceType
-
+from relics import RelicType
 
 class Board:
     """
@@ -130,6 +130,7 @@ class Board:
             if square.is_usable and square.piece:
                 if square.piece.armor_turns > 0: square.piece.armor_turns-=1
                 if square.piece.hesitation_turns > 0 : square.piece.hesitation_turns-=1
+                if square.piece.armor_turns == 0: square.piece.active_relics.remove(RelicType.TOKA_OD_CELIKA)
         
 
     # ------------------------------------------------------------------

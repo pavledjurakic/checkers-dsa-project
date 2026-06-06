@@ -16,12 +16,13 @@ class Move:
     to_col: int
     captured: list
     
-    def __init__(self, from_row, from_col, to_row, to_col, captured = None):
+    def __init__(self, from_row, from_col, to_row, to_col, captured=None, relics_used=None):
         self.from_row = from_row
         self.from_col = from_col
         self.to_row = to_row
         self.to_col = to_col
         self.captured = captured if captured is not None else []
+        self.relics_used = relics_used if relics_used is not None else frozenset()
 
 
 
@@ -47,13 +48,19 @@ class Game:
             # Lupimo snapshot, tj. deepcopy za undo sistem:
             self.undo_stack.push(GameState(self.board, self.draw_counter, self.current_player))
 
+            # Topuz slucaj: figura uskace na enemy square, pa mora captured prvo da se ukloni
+            for (captured_row, captured_col) in move.captured:
+                board.get_square(captured_row, captured_col).piece = None
+
             piece = board.get_piece(move.from_row, move.from_col)
             board.get_square(move.from_row, move.from_col).piece = None
             target = board.get_square(move.to_row, move.to_col)
             target.piece = piece
 
-            for (captured_row, captured_col) in move.captured:
-                board.get_square(captured_row, captured_col).piece = None
+            # Ukloni iskoriscene relikvije (Topuz, Sarac - svaki se koristi samo jednom)
+            for relic in move.relics_used:
+                if relic in piece.active_relics:
+                    piece.active_relics.remove(relic)
 
             type_before = piece.piece_type
             board.check_promotion(target)
@@ -95,11 +102,12 @@ class Game:
         for (piece, square) in board.get_all_pieces(player):
             for t in mg.get_moves(square, board):
                 move = Move(
-                    from_row  = square.row,
-                    from_col  = square.col,
-                    to_row    = t[0],
-                    to_col    = t[1],
-                    captured  = t[2]
+                    from_row    = square.row,
+                    from_col    = square.col,
+                    to_row      = t[0],
+                    to_col      = t[1],
+                    captured    = t[2],
+                    relics_used = t[3]
                 )
                 if move.captured:
                     jump_moves.append(move)

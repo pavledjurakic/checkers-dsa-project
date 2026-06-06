@@ -44,6 +44,7 @@ class Piece:
         return self.piece_type == PieceType.MARKO_KRALJEVIC
     
     def can_promote_to_marko(self) -> bool:
+        """Takodje promovise na Marka"""
         if {RelicType.TRI_TOVARA_BLAGA,RelicType.SARAC,RelicType.TOPUZ, RelicType.MESINA_RUJNOG_VINA}.issubset(set(self.active_relics)):
             self.promote_to_marko()
             return True

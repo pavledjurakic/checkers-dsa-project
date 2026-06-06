@@ -12,6 +12,9 @@ def main():
         display.print_board(game.board)
         current_player = game.current_player
         moves = game.get_all_moves(current_player, game.board)
+        
+        figure_sa_potezima = sorted(set((m.from_row, m.from_col) for m in moves))
+        print(f"Figure koje mogu da se igraju: {figure_sa_potezima}")
 
         chosen_figure = input("Izaberite figuru odabirom njene pozicije 'redkolona', npr. '13' >> ")
         row = int(chosen_figure[0])
