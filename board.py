@@ -121,16 +121,36 @@ class Board:
         if piece.piece_type == PieceType.JUNAK and sq.row == piece.promotion_row():
             piece.promote_to_kraljevic()
 
+
     def decrement_relics_count(self):
         """
         Prolazi kroz sve figure na tabli i za relic effect count >0 smanjuje im za 1.
         Biva pozivano na kraju svakog poteza.
         """
         for square in self.grid:
-            if square.is_usable and square.piece:
-                if square.piece.armor_turns > 0: square.piece.armor_turns-=1
-                if square.piece.hesitation_turns > 0 : square.piece.hesitation_turns-=1
-                if square.piece.armor_turns == 0: square.piece.active_relics.remove(RelicType.TOKA_OD_CELIKA)
+            if not square.is_usable or not square.piece:
+                continue
+            piece = square.piece
+
+            if piece.armor_turns > 0:
+                piece.armor_turns -= 1
+                if piece.armor_turns == 0 and RelicType.TOKA_OD_CELIKA in piece.active_relics:
+                    piece.active_relics.remove(RelicType.TOKA_OD_CELIKA)
+
+            if piece.hesitation_turns > 0:
+                piece.hesitation_turns -= 1
+
+            if piece.mesina_turns > 0:
+                piece.mesina_turns -= 1
+                if piece.mesina_turns == 0 and RelicType.MESINA_RUJNOG_VINA in piece.active_relics:
+                    piece.active_relics.remove(RelicType.MESINA_RUJNOG_VINA)
+
+            if piece.tri_tovara_turns > 0:
+                piece.tri_tovara_turns -= 1
+                if piece.tri_tovara_turns == 0 and piece.piece_type == PieceType.KRALJEVIC:
+                    piece.piece_type = PieceType.JUNAK
+                    if RelicType.TRI_TOVARA_BLAGA in piece.active_relics:
+                        piece.active_relics.remove(RelicType.TRI_TOVARA_BLAGA)
         
 
     # ------------------------------------------------------------------

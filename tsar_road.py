@@ -10,14 +10,10 @@ class TsarRoad:
             self._deque.push_front(next(self._gen))
 
     def get_front(self):
-        result = self._deque.pop_front()
-        self.backfill()
-        return result
+        return self._deque.pop_front()
 
     def get_rear(self):
-        result = self._deque.pop_rear()
-        self.backfill()
-        return result
+        return self._deque.pop_rear()
     
     def peek_front(self):
         return self._deque.peek_front()

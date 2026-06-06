@@ -30,6 +30,8 @@ class Piece:
         self.active_relics = []
         self.armor_turns = 0
         self.hesitation_turns = 0
+        self.mesina_turns = 0       # koliko poteza je Mesina jos "vidljiva" na nasoj figuri
+        self.tri_tovara_turns = 0   # > 0 = privremeni Kraljevic; pada na 0 = vracamo na Junaka
         self.unwaivering = False
 
     # ------------------------------------------------------------------
@@ -55,14 +57,22 @@ class Piece:
     # ------------------------------------------------------------------
 
     def promote_to_kraljevic(self):
-        """Promovise Junaka u Kraljevica."""
+        """Promovise Junaka u Kraljevica (trajna promocija - dosao na zadnji red)."""
         if self.piece_type == PieceType.JUNAK:
             self.piece_type = PieceType.KRALJEVIC
 
+    def promote_to_kraljevic_temporary(self):
+        """Privremena promocija Junaka u Kraljevica (Tri tovara blaga).
+        Nema efekta ako je vec stalni Kraljevic ili Marko."""
+        if self.piece_type == PieceType.JUNAK:
+            self.piece_type = PieceType.KRALJEVIC
+            self.tri_tovara_turns = 3   # kraj mog poteza + 1 protivnikov + moj sledeci
+
     def promote_to_marko(self):
-        """Promovise Kraljevica u Marka Kraljevica (pasivna sposobnost nepokolebljivosti)."""
+        """Promovise u Marka Kraljevica (trajna promocija)."""
         self.piece_type = PieceType.MARKO_KRALJEVIC
         self.unwaivering = True
+        self.tri_tovara_turns = 0   # trajna promocija, nema reverting
 
     # ------------------------------------------------------------------
     # Pravac kretanja (bitno za Junaka koji ide samo napred)

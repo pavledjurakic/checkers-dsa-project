@@ -128,9 +128,11 @@ class Game:
 
     def get_winner(self, board: Board):
         if board.get_all_pieces(Player.BELI)==[]:
-            return Player.CRNI
+            self.winner = Player.CRNI
+            return self.winner
         elif board.get_all_pieces(Player.CRNI)==[]:
-            return Player.BELI
+            self.winner = Player.BELI
+            return self.winner
         elif self.draw_counter >= 40:
             return None
         else:
