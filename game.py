@@ -140,7 +140,10 @@ class Game:
         elif self.draw_counter >= 40:
             return None
         else:
-            raise Exception("Do pobede nije doslo!")
+            if self.winner is not None:
+                return self.winner
+            else:
+                raise Exception("Do pobede nije doslo - nepredvidjen slucaj!")
 
 
     def is_valid_move(self, move: Move, board: Board):

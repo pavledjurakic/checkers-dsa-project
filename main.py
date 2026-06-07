@@ -4,9 +4,11 @@ from relics import *
 import display as display
 import ai.minimax as ai_minmax
 import time
+from data_structures.n_ary_tree import *
 
 def main():
     game = Game()
+    n_ary_tree = N_Ary_Tree(game.board)
     while True:
         choice = input("Da li zelite da budete CRNI(1) ili BELI(2) igrac >> ")
         if choice in ["1", "2"]:
@@ -33,6 +35,7 @@ def main():
 
         if not moves: # igrac nema vise nista da odigra, protivnik je pobedio
             game.winner = Player.CRNI if current_player != Player.CRNI else Player.BELI
+            n_ary_tree.current_node.is_game_over = True
             break
         
         figure_sa_potezima = sorted(set((m.from_row, m.from_col) for m in moves))
@@ -41,7 +44,12 @@ def main():
         if current_player == game.ai_player:
 
             best_move = ai_minmax.get_best_move_iteratively(game, True if game.ai_player==Player.BELI else False, 3)
+            print(f"AI: ({best_move.from_row},{best_move.from_col}) -> ({best_move.to_row},{best_move.to_col})", end="")
+            if best_move.captured:
+                print(f"  [jede: {best_move.captured}]", end="")
+            print()
             game.apply_move(best_move, game.board)
+            n_ary_tree.add_next_move(best_move, game.board) # za reprodukciju kasnije
 
             target_square = game.board.get_square(best_move.to_row, best_move.to_col)
             if target_square.is_brazda:
@@ -58,6 +66,7 @@ def main():
             chosen_figure = input("Izaberite figuru odabirom njene pozicije 'redkolona', npr. '13' ili unesite 'undo' za undo >> ")
             if chosen_figure == 'undo':
                 game.undo()
+                n_ary_tree.current_node = n_ary_tree.current_node.parent
                 continue
             else:
                 row = int(chosen_figure[0])
@@ -79,6 +88,7 @@ def main():
                 continue
             chosen_move = available_moves_for_figure[chosen_move_index]
             game.apply_move(chosen_move, game.board)
+            n_ary_tree.add_next_move(chosen_move, game.board) # za reprodukciju kasnije
             
             target_square = game.board.get_square(chosen_move.to_row, chosen_move.to_col)
             if target_square.is_brazda:
@@ -122,11 +132,21 @@ def main():
         game.board.decrement_relics_count()
         game.tsar_road.backfill()
 
+    n_ary_tree.current_node.is_game_over = True
     print()
     display.print_board(game.board) # odstampamo jos jednom kada pobedi neko da se vidi konacno
     print("="*15)
     print(f"\nPobednik je {game.get_winner(game.board)}")
 
+    reproduction_choice = input(f"\nDa li želite da pogledate Vašu igru još jednom? (y/n) >> ")
+    if reproduction_choice in ["y","n","Y","N"]:
+        match reproduction_choice:
+            case "y" | "Y":
+                print(f"\nReprodukcija:")
+                n_ary_tree.traverse_the_tree()
+                print(f"\nKRAJ REPORDUKCIJE!")
+            case "n" | "N":
+                pass
 
 if __name__=="__main__":
     main()
