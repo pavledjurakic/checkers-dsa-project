@@ -3,6 +3,7 @@ from math import inf
 from game import Game
 import copy, time
 import ai.zobrist_hashing as z_hash
+from ai.timeout_exception import TimeoutException
 
 
 def clone_game(game):
@@ -82,7 +83,9 @@ def apply_relic(game, to_sq, relic):
         piece.active_relics.append(relic)   # SARAC, TOPUZ i eventualni ostali
 
 
-def minimax(game, depth, alpha, beta, is_maximizing, transposition_table):
+def minimax(game, depth, alpha, beta, is_maximizing, transposition_table, start_time, time_limit):
+    if time.time() - start_time >= time_limit:
+        raise TimeoutException()
     player = Player.BELI if is_maximizing else Player.CRNI
     moves  = Game.get_all_moves(None, player, game.board)
 
@@ -100,7 +103,7 @@ def minimax(game, depth, alpha, beta, is_maximizing, transposition_table):
             if pos_hash in transposition_table and transposition_table[pos_hash][1] >= depth:
                 score = transposition_table[pos_hash][0]
             else:
-                score = minimax(game_copy, depth-1, alpha, beta, False, transposition_table)
+                score = minimax(game_copy, depth-1, alpha, beta, False, transposition_table, start_time, time_limit)
                 transposition_table[pos_hash] = [score, depth]
 
             best  = max(best, score)
@@ -120,7 +123,7 @@ def minimax(game, depth, alpha, beta, is_maximizing, transposition_table):
             if pos_hash in transposition_table and transposition_table[pos_hash][1] >= depth:
                 score = transposition_table[pos_hash][0]
             else:
-                score = minimax(game_copy, depth-1, alpha, beta, True, transposition_table)
+                score = minimax(game_copy, depth-1, alpha, beta, True, transposition_table, start_time, time_limit)
                 transposition_table[pos_hash] = [score, depth]
             
             best = min(best, score)
@@ -130,7 +133,7 @@ def minimax(game, depth, alpha, beta, is_maximizing, transposition_table):
         return best
 
 
-def get_best_move(game, is_maximizing, depth, transposition_table):
+def get_best_move(game, is_maximizing, depth, transposition_table, start_time, time_limit):
     best_move = None
     best_score = -inf if is_maximizing else +inf
     player = Player.BELI if is_maximizing else Player.CRNI
@@ -144,7 +147,10 @@ def get_best_move(game, is_maximizing, depth, transposition_table):
         if pos_hash in transposition_table and transposition_table[pos_hash][1] >= depth:
             score = transposition_table[pos_hash][0]
         else:
-            score = minimax(game_copy, depth-1, -inf, +inf, not is_maximizing, transposition_table)
+            try:
+                score = minimax(game_copy, depth-1, -inf, +inf, not is_maximizing, transposition_table, start_time, time_limit)
+            except TimeoutException:
+                return None
             transposition_table[pos_hash] = [score, depth]
 
         if is_maximizing and score > best_score:
@@ -163,13 +169,13 @@ def get_best_move_iteratively(game, is_maximizing, time_limit=3.0):
     last_duration = 0
     start = time.time()
 
-    for depth in range(1, 15):
+    for depth in range(1, 20):
         if time.time() - start + last_duration > time_limit:
             break
         t = time.time()
-        move = get_best_move(game, is_maximizing, depth, transposition_table)
+        move = get_best_move(game, is_maximizing, depth, transposition_table, start, time_limit)
         last_duration = time.time() - t
-        if move:
+        if move is not None:
             best_move = move  # cuvamo samo kompletne rezultate
 
     return best_move
