@@ -123,7 +123,7 @@ class Board:
         piece = sq.piece
         if piece is None:
             return
-        if piece.piece_type == PieceType.JUNAK and sq.row == piece.promotion_row():
+        if piece.is_permanent_kraljevic != True and sq.row == piece.promotion_row():
             piece.promote_to_kraljevic()
 
 
@@ -152,8 +152,9 @@ class Board:
 
             if piece.tri_tovara_turns > 0:
                 piece.tri_tovara_turns -= 1
-                if piece.tri_tovara_turns == 0 and piece.piece_type == PieceType.KRALJEVIC:
+                if piece.tri_tovara_turns == 0 and piece.is_temporary_kraljevic == True:
                     piece.piece_type = PieceType.JUNAK
+                    piece.is_temporary_kraljevic = False
                     if RelicType.TRI_TOVARA_BLAGA in piece.active_relics:
                         piece.active_relics.remove(RelicType.TRI_TOVARA_BLAGA)
         

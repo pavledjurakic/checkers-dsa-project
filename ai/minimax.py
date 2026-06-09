@@ -66,16 +66,20 @@ def score_relic(relic, piece, game):
 
 def apply_relic(game, to_sq, relic):
     piece = to_sq.piece
-    piece.active_relics.append(relic)
-    if relic == RelicType.TRI_TOVARA_BLAGA:
+    if relic == RelicType.TRI_TOVARA_BLAGA and piece.is_permanent_kraljevic != True:
+        piece.active_relics.append(relic)
         piece.promote_to_kraljevic_temporary()
     elif relic == RelicType.TOKA_OD_CELIKA:
+        piece.active_relics.append(relic)
         piece.armor_turns = 4 if piece.is_marko() else 2
     elif relic == RelicType.MESINA_RUJNOG_VINA:
+        piece.active_relics.append(relic)
         nearest = game.board.get_nearest_enemy(to_sq.row, to_sq.col)
         if nearest and not nearest[0].piece.unwaivering:
             nearest[0].piece.hesitation_turns = 4
         piece.mesina_turns = 4
+    else:
+        piece.active_relics.append(relic)   # SARAC, TOPUZ i eventualni ostali
 
 
 def minimax(game, depth, alpha, beta, is_maximizing, transposition_table):

@@ -26,7 +26,7 @@ def main():
     
 
     while not game.is_game_over(game.board):
-        time.sleep(2)
+        time.sleep(1)
         print("="*15)
         print(f"\nNa potezu je: {game.current_player.name}")
         display.print_board(game.board)
@@ -99,31 +99,39 @@ def main():
                 match choice:
                     case 1:
                         relic = game.tsar_road.get_front()
-                        target_square.piece.active_relics.append(relic)
-                        if relic == RelicType.TRI_TOVARA_BLAGA:
+                        if relic == RelicType.TRI_TOVARA_BLAGA and target_square.piece.is_permanent_kraljevic != True:
+                            target_square.piece.active_relics.append(relic)
                             target_square.piece.promote_to_kraljevic_temporary()
                         elif relic == RelicType.TOKA_OD_CELIKA:
+                            target_square.piece.active_relics.append(relic)
                             target_square.piece.armor_turns = 4 if target_square.piece.is_marko() else 2
                         elif relic == RelicType.MESINA_RUJNOG_VINA:
+                            target_square.piece.active_relics.append(relic)
                             nearest_enemy_squares = game.board.get_nearest_enemy(target_square.row,target_square.col)
                             # To Do - jos samo da se ovde kasnije ubaci da se zapravo bira ona koja je najjaca figura, a da nije otporna da se mami u heuristici
                             if nearest_enemy_squares and nearest_enemy_squares[0].piece.unwaivering==False:
                                 nearest_enemy_squares[0].piece.hesitation_turns = 4  # 2 protivnicka poteza = 4 dekrementa
                             target_square.piece.mesina_turns = 4  # prati isti zivotni vek
+                        else:
+                            target_square.piece.active_relics.append(relic)   # SARAC, TOPUZ i eventualni ostali
 
                     case 2:
                         relic = game.tsar_road.get_rear()
-                        target_square.piece.active_relics.append(relic)
-                        if relic == RelicType.TRI_TOVARA_BLAGA:
+                        if relic == RelicType.TRI_TOVARA_BLAGA and target_square.piece.is_permanent_kraljevic != True:
+                            target_square.piece.active_relics.append(relic)
                             target_square.piece.promote_to_kraljevic_temporary()
                         elif relic == RelicType.TOKA_OD_CELIKA:
+                            target_square.piece.active_relics.append(relic)
                             target_square.piece.armor_turns = 4 if target_square.piece.is_marko() else 2
                         elif relic == RelicType.MESINA_RUJNOG_VINA:
+                            target_square.piece.active_relics.append(relic)
                             nearest_enemy_squares = game.board.get_nearest_enemy(target_square.row,target_square.col)
                             # To Do - jos samo da se ovde kasnije ubaci da se zapravo bira ona koja je najjaca figura, a da nije otporna da se mami u heuristici
                             if nearest_enemy_squares[0].piece.unwaivering==False:
                                 nearest_enemy_squares[0].piece.hesitation_turns = 4  # 2 protivnicka poteza = 4 dekrementa
                             target_square.piece.mesina_turns = 4  # prati isti zivotni vek
+                        else:
+                            target_square.piece.active_relics.append(relic)   # SARAC, TOPUZ i eventualni ostali
 
                 
                 if target_square.piece.can_promote_to_marko():
