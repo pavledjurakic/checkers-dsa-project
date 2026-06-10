@@ -50,7 +50,7 @@ class Game:
     def apply_move(self, move: Move, board: Board):
         if self.is_valid_move(move, board): # type: ignore
             # Lupimo snapshot, tj. deepcopy za undo sistem:
-            self.undo_stack.push(GameState(self.board, self.draw_counter, self.current_player))
+            self.undo_stack.push(GameState(self.board, self.draw_counter, self.current_player, self.tsar_road))
 
             # Topuz slucaj: figura uskace na enemy square, pa mora captured prvo da se ukloni
             for (captured_row, captured_col) in move.captured:
@@ -89,6 +89,9 @@ class Game:
             self.board = state.board
             self.draw_counter = state.draw_counter
             self.current_player = state.current_player
+            self.tsar_road = state.tsar_road
+            return True
+        return False
 
 
     def get_all_moves(self, player: Player, board: Board) -> list:
@@ -138,7 +141,7 @@ class Game:
             self.winner = Player.BELI
             return self.winner
         elif self.draw_counter >= 40:
-            return None
+            return "NERESENO"
         else:
             if self.winner is not None:
                 return self.winner
@@ -165,11 +168,12 @@ class GameState:
     draw_counter: int
     board: Board
     current_player: Player
+    tsar_road: TsarRoad
 
-    def __init__(self, board, draw_counter, current_player):
+    def __init__(self, board, draw_counter, current_player, tsar_road):
         self.draw_counter = draw_counter
         self.board = copy.deepcopy(board)
         self.current_player = current_player
-
+        self.tsar_road = copy.deepcopy(tsar_road)
 
         

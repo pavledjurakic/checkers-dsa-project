@@ -52,7 +52,7 @@ class Piece:
         Uslov: figura ima efekat Kraljevica (trajni ili privremeni) + Sarac + Topuz + Mesina."""
         has_kraljevic_effect = self.is_permanent_kraljevic or RelicType.TRI_TOVARA_BLAGA in self.active_relics
         has_other_relics = {RelicType.SARAC, RelicType.TOPUZ, RelicType.MESINA_RUJNOG_VINA}.issubset(set(self.active_relics))
-        if has_kraljevic_effect and has_other_relics:
+        if has_kraljevic_effect and has_other_relics and not self.is_marko():
             self.promote_to_marko()
             return True
         return False

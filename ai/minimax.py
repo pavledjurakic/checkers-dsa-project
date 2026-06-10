@@ -27,6 +27,7 @@ def apply_game(game, move):
 
     if to_sq.is_brazda and to_sq.piece and game.tsar_road:
         pick_best_relic(game, to_sq)
+        to_sq.piece.can_promote_to_marko()
 
     game.board.decrement_relics_count()
     game.tsar_road.backfill()
@@ -60,7 +61,7 @@ def score_relic(relic, piece, game):
         return 60
     if relic == RelicType.SARAC:
         return 30
-    if relic == RelicType.TRI_TOVARA_BLAGA:
+    if relic == RelicType.TRI_TOVARA_BLAGA and not piece.is_permanent_kraljevic: # ne zelimo za trajnog kraljevica da pumpamo skor, kada njemu ovo ne znaci nista
         return 50
     return 0
 
@@ -68,19 +69,22 @@ def score_relic(relic, piece, game):
 def apply_relic(game, to_sq, relic):
     piece = to_sq.piece
     if relic == RelicType.TRI_TOVARA_BLAGA and piece.is_permanent_kraljevic != True:
-        piece.active_relics.append(relic)
+        if relic not in piece.active_relics:
+            piece.active_relics.append(relic)
         piece.promote_to_kraljevic_temporary()
     elif relic == RelicType.TOKA_OD_CELIKA:
-        piece.active_relics.append(relic)
+        if relic not in piece.active_relics:
+            piece.active_relics.append(relic)
         piece.armor_turns = 4 if piece.is_marko() else 2
     elif relic == RelicType.MESINA_RUJNOG_VINA:
-        piece.active_relics.append(relic)
+        if relic not in piece.active_relics:
+            piece.active_relics.append(relic)
         nearest = game.board.get_nearest_enemy(to_sq.row, to_sq.col)
         if nearest and not nearest[0].piece.unwaivering:
             nearest[0].piece.hesitation_turns = 4
         piece.mesina_turns = 4
-    else:
-        piece.active_relics.append(relic)   # SARAC, TOPUZ i eventualni ostali
+    elif relic == RelicType.SARAC or relic == RelicType.TOPUZ:
+        piece.active_relics.append(relic)
 
 
 def minimax(game, depth, alpha, beta, is_maximizing, transposition_table, start_time, time_limit):
@@ -98,7 +102,7 @@ def minimax(game, depth, alpha, beta, is_maximizing, transposition_table, start_
             game_copy = clone_game(game)
             apply_game(game_copy, move)
 
-            pos_hash = z_hash.compute_hash(game_copy.board)
+            pos_hash = z_hash.compute_hash(game_copy.board, Player.CRNI)
 
             if pos_hash in transposition_table and transposition_table[pos_hash][1] >= depth:
                 score = transposition_table[pos_hash][0]
@@ -118,7 +122,7 @@ def minimax(game, depth, alpha, beta, is_maximizing, transposition_table, start_
             game_copy = clone_game(game)
             apply_game(game_copy, move)
 
-            pos_hash = z_hash.compute_hash(game_copy.board)
+            pos_hash = z_hash.compute_hash(game_copy.board, Player.BELI)
 
             if pos_hash in transposition_table and transposition_table[pos_hash][1] >= depth:
                 score = transposition_table[pos_hash][0]
@@ -142,7 +146,7 @@ def get_best_move(game, is_maximizing, depth, transposition_table, start_time, t
         game_copy = clone_game(game)
         apply_game(game_copy, move)
 
-        pos_hash = z_hash.compute_hash(game_copy.board)
+        pos_hash = z_hash.compute_hash(game_copy.board, Player.CRNI if is_maximizing else Player.BELI)
 
         if pos_hash in transposition_table and transposition_table[pos_hash][1] >= depth:
             score = transposition_table[pos_hash][0]

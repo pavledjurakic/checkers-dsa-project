@@ -8,10 +8,11 @@ class RelicType(Enum):
     SARAC = "sarac"
     TRI_TOVARA_BLAGA = "tri tovara blaga"
 
-def relic_cycle():
-    relics = [RelicType.TOKA_OD_CELIKA, RelicType.MESINA_RUJNOG_VINA, RelicType.TOPUZ, RelicType.SARAC, RelicType.TRI_TOVARA_BLAGA]
-    random.shuffle(relics)
-    while True:
-        for relic in relics:
-            yield relic
+# Ok, ovo vise nije potrebno - ne mogu praviti deepcopy-ije generator objekata :(
+# def relic_cycle():
+#     relics = [RelicType.TOKA_OD_CELIKA, RelicType.MESINA_RUJNOG_VINA, RelicType.TOPUZ, RelicType.SARAC, RelicType.TRI_TOVARA_BLAGA]
+#     random.shuffle(relics)
+#     while True:
+#         for relic in relics:
+#             yield relic
 

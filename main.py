@@ -49,7 +49,6 @@ def main():
                 print(f"  [jede: {best_move.captured}]", end="")
             print()
             game.apply_move(best_move, game.board)
-            n_ary_tree.add_next_move(best_move, game.board) # za reprodukciju kasnije
 
             target_square = game.board.get_square(best_move.to_row, best_move.to_col)
             if target_square.is_brazda:
@@ -60,13 +59,15 @@ def main():
                 if target_square.piece.can_promote_to_marko():
                     print("AI figura je postala Marko Kraljevic - sada ima pasivnu sposobnost nepokolebljivosti.")
 
+            played_move = best_move
 
         else:
 
             chosen_figure = input("Izaberite figuru odabirom njene pozicije 'redkolona', npr. '13' ili unesite 'undo' za undo >> ")
             if chosen_figure == 'undo':
-                game.undo()
-                n_ary_tree.current_node = n_ary_tree.current_node.parent
+                for _ in range(2):
+                    if game.undo():
+                        n_ary_tree.current_node = n_ary_tree.current_node.parent
                 continue
             else:
                 row = int(chosen_figure[0])
@@ -88,57 +89,71 @@ def main():
                 continue
             chosen_move = available_moves_for_figure[chosen_move_index]
             game.apply_move(chosen_move, game.board)
-            n_ary_tree.add_next_move(chosen_move, game.board) # za reprodukciju kasnije
             
             target_square = game.board.get_square(chosen_move.to_row, chosen_move.to_col)
             if target_square.is_brazda:
                 print("Dobrodosli na Carev Drum - izaberite relikviju (1/2):")
                 print(f"1. {game.tsar_road.peek_front()}")
                 print(f"2. {game.tsar_road.peek_rear()}")
-                choice = int(input(">> "))
+                while True:
+                    choice = input(">> ")
+                    if choice in ["1", "2"]:
+                        choice = int(choice)
+                        break
+                    else:
+                        print("Unesite 1 ili 2!")
                 match choice:
                     case 1:
                         relic = game.tsar_road.get_front()
                         if relic == RelicType.TRI_TOVARA_BLAGA and target_square.piece.is_permanent_kraljevic != True:
-                            target_square.piece.active_relics.append(relic)
+                            if relic not in target_square.piece.active_relics:
+                                target_square.piece.active_relics.append(relic)
                             target_square.piece.promote_to_kraljevic_temporary()
                         elif relic == RelicType.TOKA_OD_CELIKA:
-                            target_square.piece.active_relics.append(relic)
+                            if relic not in target_square.piece.active_relics:
+                                target_square.piece.active_relics.append(relic)
                             target_square.piece.armor_turns = 4 if target_square.piece.is_marko() else 2
                         elif relic == RelicType.MESINA_RUJNOG_VINA:
-                            target_square.piece.active_relics.append(relic)
+                            if relic not in target_square.piece.active_relics:
+                                target_square.piece.active_relics.append(relic)
                             nearest_enemy_squares = game.board.get_nearest_enemy(target_square.row,target_square.col)
                             # To Do - jos samo da se ovde kasnije ubaci da se zapravo bira ona koja je najjaca figura, a da nije otporna da se mami u heuristici
                             if nearest_enemy_squares and nearest_enemy_squares[0].piece.unwaivering==False:
                                 nearest_enemy_squares[0].piece.hesitation_turns = 4  # 2 protivnicka poteza = 4 dekrementa
                             target_square.piece.mesina_turns = 4  # prati isti zivotni vek
-                        else:
-                            target_square.piece.active_relics.append(relic)   # SARAC, TOPUZ i eventualni ostali
+                        elif relic == RelicType.SARAC or relic == RelicType.TOPUZ:
+                            target_square.piece.active_relics.append(relic)
 
                     case 2:
                         relic = game.tsar_road.get_rear()
                         if relic == RelicType.TRI_TOVARA_BLAGA and target_square.piece.is_permanent_kraljevic != True:
-                            target_square.piece.active_relics.append(relic)
+                            if relic not in target_square.piece.active_relics:
+                                target_square.piece.active_relics.append(relic)
                             target_square.piece.promote_to_kraljevic_temporary()
                         elif relic == RelicType.TOKA_OD_CELIKA:
-                            target_square.piece.active_relics.append(relic)
+                            if relic not in target_square.piece.active_relics:
+                                target_square.piece.active_relics.append(relic)
                             target_square.piece.armor_turns = 4 if target_square.piece.is_marko() else 2
                         elif relic == RelicType.MESINA_RUJNOG_VINA:
-                            target_square.piece.active_relics.append(relic)
+                            if relic not in target_square.piece.active_relics:
+                                target_square.piece.active_relics.append(relic)
                             nearest_enemy_squares = game.board.get_nearest_enemy(target_square.row,target_square.col)
                             # To Do - jos samo da se ovde kasnije ubaci da se zapravo bira ona koja je najjaca figura, a da nije otporna da se mami u heuristici
-                            if nearest_enemy_squares[0].piece.unwaivering==False:
+                            if nearest_enemy_squares and nearest_enemy_squares[0].piece.unwaivering==False:
                                 nearest_enemy_squares[0].piece.hesitation_turns = 4  # 2 protivnicka poteza = 4 dekrementa
                             target_square.piece.mesina_turns = 4  # prati isti zivotni vek
-                        else:
-                            target_square.piece.active_relics.append(relic)   # SARAC, TOPUZ i eventualni ostali
+                        elif relic == RelicType.SARAC or relic == RelicType.TOPUZ:
+                            target_square.piece.active_relics.append(relic)
 
-                
+
                 if target_square.piece.can_promote_to_marko():
                     print("Vasa figura je postala Marko Kraljevic - sada ima pasivnu sposobnost nepokolebljivosti.")
 
+            played_move = chosen_move
+
         game.board.decrement_relics_count()
         game.tsar_road.backfill()
+        n_ary_tree.add_next_move(played_move, game.board) # za reprodukciju kasnije
 
     n_ary_tree.current_node.is_game_over = True
     print()

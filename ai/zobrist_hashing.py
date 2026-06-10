@@ -1,8 +1,14 @@
 from board import *
+from square import randomInt
+
+SIDE_TO_MOVE = randomInt()   # globalni broj - XOR-uje se kada je CRNI na potezu
 
 
-def compute_hash(board: Board) -> int:
+def compute_hash(board: Board, player_to_move: Player) -> int:
     hash = 0
+
+    if player_to_move == Player.CRNI:
+        hash = hash ^ SIDE_TO_MOVE
 
     for row in range (0,8,1):
         for col in range (0,8,1):
